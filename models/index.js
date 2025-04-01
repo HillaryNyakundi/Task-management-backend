@@ -1,6 +1,8 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const config = require('../config/config')[process.env.NODE_ENV || 'development'];
 
+console.log('Sequelize connecting to:', process.env.DATABASE_URL || config.database); //Log connection URL
+
 let sequelize;
 
 if (config.use_env_variable) {
