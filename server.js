@@ -46,7 +46,7 @@ app.use(cookieParser());
 // ✅ CORS (Allows frontend to send cookies with requests)
 app.use(
   cors({
-    origin: 'http://localhost:3000', // Ensure this matches your frontend origin
+    origin: process.env.FRONTEND_URL, // Allow frontend only in production
     credentials: true, // Required for cookies
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
