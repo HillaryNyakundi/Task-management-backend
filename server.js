@@ -56,16 +56,19 @@ if (process.env.NODE_ENV === 'production') {
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ CORS (Allows frontend to send cookies with requests)
+//CORS (Allows frontend to send cookies with requests)
 app.use(
   cors({
-    origin: 'http://localhost:3000', // Ensure this matches your frontend origin
-    credentials: true, // Required for cookies
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? process.env.FRONTEND_URL
+        : 'http://localhost:3000',
+    credentials: true, // Allow credentials (cookies) to be sent
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-// --- ✅ Authentication Routes ---
+// ---Authentication Routes ---
 /**
  * Express.js API Routes
  * @module server
