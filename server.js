@@ -7,26 +7,27 @@ const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const { ApolloServer } = require('@apollo/server');
 const { expressMiddleware } = require('@apollo/server/express4');
-const { sequelize } = require('./src/models');
-const { User } = require('./src/models');
-const typeDefs = require('./src/graphql/typeDefs');
-const resolvers = require('./src/graphql/resolver');
+const { sequelize } = require('./models');
+const { User } = require('./models');
+const typeDefs = require('./graphql/typeDefs');
+const resolvers = require('./graphql/resolver');
 const { Pool } = require('pg');
 
 const app = express();
 
-// ✅ PostgreSQL Connection Pool
+// PostgreSQL Connection Pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Ensure this is set in your .env file
+  connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// ✅ Session Middleware (Using PostgreSQL Store)
+// Session Configuration
 app.use(
   session({
     store: new pgSession({
-      pool, // ✅ Use the PostgreSQL connection pool
-      tableName: 'session', // The table will be created automatically
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true, // Automatically creates the session table
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -34,11 +35,23 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   })
 );
+
+// Session cleanup (run periodically in production)
+if (process.env.NODE_ENV === 'production') {
+  setInterval(async () => {
+    try {
+      await pool.query('DELETE FROM session WHERE expire < NOW()');
+      console.log('Session cleanup completed');
+    } catch (error) {
+      console.error('Session cleanup error:', error);
+    }
+  }, 60 * 60 * 1000); // Every hour
+}
 
 app.use(express.json());
 app.use(cookieParser());
@@ -46,7 +59,7 @@ app.use(cookieParser());
 // ✅ CORS (Allows frontend to send cookies with requests)
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL, // Allow frontend only in production
+    origin: 'http://localhost:3000', // Ensure this matches your frontend origin
     credentials: true, // Required for cookies
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
