@@ -15,19 +15,19 @@ const { Pool } = require('pg');
 
 const app = express();
 
-// PostgreSQL Connection Pool
+// ✅ PostgreSQL Connection Pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL, // Ensure this is set in your .env file
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// Session Configuration
+// ✅ Session Middleware (Using PostgreSQL Store)
 app.use(
   session({
     store: new pgSession({
-      pool,
-      tableName: 'session',
-      createTableIfMissing: true, // Automatically creates the session table
+      pool, // ✅ Use the PostgreSQL connection pool
+      tableName: 'session', // The table will be created automatically
+      createTableIfMissing: true, // Create the table if it doesn't exist
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -35,40 +35,25 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     },
   })
 );
 
-// Session cleanup (run periodically in production)
-if (process.env.NODE_ENV === 'production') {
-  setInterval(async () => {
-    try {
-      await pool.query('DELETE FROM session WHERE expire < NOW()');
-      console.log('Session cleanup completed');
-    } catch (error) {
-      console.error('Session cleanup error:', error);
-    }
-  }, 60 * 60 * 1000); // Every hour
-}
-
 app.use(express.json());
 app.use(cookieParser());
 
-//CORS (Allows frontend to send cookies with requests)
+// ✅ CORS (Allows frontend to send cookies with requests)
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? process.env.FRONTEND_URL
-        : 'http://localhost:3000',
-    credentials: true, // Allow credentials (cookies) to be sent
+    origin: 'http://localhost:3000', // Ensure this matches your frontend origin
+    credentials: true, // Required for cookies
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-// ---Authentication Routes ---
+// --- ✅ Authentication Routes ---
 /**
  * Express.js API Routes
  * @module server
